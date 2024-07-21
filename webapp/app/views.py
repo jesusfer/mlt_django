@@ -18,9 +18,9 @@ def service(request):
     with tracer.start_as_current_span("API call") as span:
         logger.error("Log2 on Webapp!")
 
-        time.sleep(0.3)
+        # time.sleep(0.3)
         r = requests.get("http://webapi:8001/add")
-        time.sleep(0.3)
+        # time.sleep(0.3)
 
         context = {
             'result': r.json()['result']

@@ -10,20 +10,47 @@ scrape_configs:
     metrics_path: /metrics
     static_configs:
       - targets:
-          - 'prometheus:9090'
-
-  - job_name: webapp-scraper
-    metrics_path: /metrics
+        - prometheus:9090
+  # - job_name: webapp-scraper
+  #   metrics_path: /metrics
+  #   static_configs:
+  #     - targets:
+  #         - 'webapp:8000'
+  #       labels:
+  #         app: webapp
+  #         env: dev
+  # - job_name: webapi-scraper
+  #   metrics_path: /metrics
+  #   static_configs:
+  #     - targets:
+  #         - 'webapi:8001'
+  #       labels:
+  #         app: webapi
+  #         env: dev
+  - job_name: docker_host
     static_configs:
       - targets:
-          - 'webapp:8000'
-        labels:
-          app: webapp
-
-  - job_name: webapi-scraper
-    metrics_path: /metrics
-    static_configs:
-      - targets:
-          - 'webapi:8001'
-        labels:
-          app: webapi
+        - host.docker.internal:9323
+  - job_name: docker_containers
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 15s
+    relabel_configs:
+      # Only keep containers that have a `prometheus-job` label.
+      - source_labels: [__meta_docker_container_label_prometheus_job]
+        regex: .+
+        action: keep
+      # Use the task labels that are prefixed by `prometheus-`.
+      - regex: __meta_docker_container_label_prometheus_(.+)
+        action: labelmap
+        replacement: $1
+  - job_name: docker_dns
+    dns_sd_configs:
+      - names:
+          - webapp
+        type: A
+        port: 8000
+      - names:
+          - webapi
+        type: A
+        port: 8001

@@ -10,5 +10,5 @@ def index(request):
 
 def add(request):
     logger.error("Log on API dude!")
-    time.sleep(0.5)
+    # time.sleep(0.5)
     return JsonResponse({'result':4})

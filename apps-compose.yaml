@@ -1,0 +1,65 @@
+name: apps
+services:
+  ### DJANGO APPS ###
+  webapp:
+    build: ./webapp
+    command: python manage.py runserver 0.0.0.0:8000
+    environment:
+      - TRACING_HOST=jaeger
+      - TRACING_PORT=6831
+    volumes:
+      - ./webapp:/webapp
+    ports:
+      - "8000:8000"
+      - 8080:8080
+    depends_on:
+      - webapi
+    networks:
+      - apps
+      - observability
+    labels:
+      - prometheus_job=apps_webapp
+      - prometheus_project=mlt_test
+      - prometheus_env=development
+      - prometheus___metrics_path__=/metrics
+
+  webapi:
+    build: ./webapi
+    command: python manage.py runserver 0.0.0.0:8001
+    environment:
+      - TRACING_HOST=jaeger
+      - TRACING_PORT=6831
+    volumes:
+      - ./webapi:/webapi
+    ports:
+      - "8001:8001"
+    networks:
+      - apps
+      - observability
+    labels:
+      - prometheus_job=apps_webapi
+      - prometheus_project=mlt_test
+      - prometheus_env=development
+      - prometheus___metrics_path__=/metrics
+
+  ### OBSERVABILITY APPS ###
+  promtail:
+    # Must be local to the apps
+    image: grafana/promtail:latest
+    volumes:
+      - ./promtail/promtail.yaml:/etc/promtail/promtail.yaml
+      - ./webapp/webapp.log:/var/log/webapp.log
+      - ./webapi/webapi.log:/var/log/webapi.log
+    command: --config.file=/etc/promtail/promtail.yaml
+    depends_on:
+      - webapp
+      - webapi
+    networks:
+      - observability
+
+networks:
+  apps:
+    name: django_apps
+  observability:
+    name: observability
+    external: true
