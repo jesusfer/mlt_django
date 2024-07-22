@@ -1,3 +1,5 @@
+# https://grafana.com/docs/loki/latest/send-data/promtail/configuration/#relabel_configs
+
 server:
   http_listen_port: 9080
   grpc_listen_port: 0
@@ -9,17 +11,24 @@ clients:
   - url: http://loki:3100/loki/api/v1/push
 
 scrape_configs:
-- job_name: django-log-scraper
-  static_configs:
-  - targets:
-    - localhost
-    labels:
-      __path__: "/var/log/webapp.log"
-      app: webapp
-      env: dev
-  - targets:
-    - localhost
-    labels:
-      __path__: "/var/log/webapi.log"
-      app: webapi
-      env: dev
+- job_name: docker_containers
+  docker_sd_configs:
+  - host: unix:///var/run/docker.sock
+    refresh_interval: 15s
+    filters:
+      - name: label
+        values: ["promtail_enable=true"]
+
+  pipeline_stages:
+  - docker: {}
+  # - static_labels:
+  #     job: "docker_containers"
+  relabel_configs:
+  - source_labels: ['__meta_docker_container_name']
+    regex: '/(.*)'
+    target_label: 'container'
+  - regex: __meta_docker_container_label_promtail_enable
+    action: labeldrop
+  - regex: __meta_docker_container_label_promtail_(.+)
+    action: labelmap
+    replacement: $1

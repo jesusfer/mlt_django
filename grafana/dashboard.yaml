@@ -25,7 +25,7 @@ datasources:
     type: jaeger
     uid: my-jaeger
     access: browser
-    url: http://jaeger:16686
+    url: http://jaeger-query:16686
     isDefault: false
     version: 1
     editable: true

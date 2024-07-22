@@ -5,7 +5,7 @@ services:
     build: ./webapp
     command: python manage.py runserver 0.0.0.0:8000
     environment:
-      - TRACING_HOST=jaeger
+      - TRACING_HOST=jaeger-agent
       - TRACING_PORT=6831
     volumes:
       - ./webapp:/webapp
@@ -22,12 +22,16 @@ services:
       - prometheus_project=mlt_test
       - prometheus_env=development
       - prometheus___metrics_path__=/metrics
+      - promtail_enable=true
+      - promtail_job=apps_webapp
+      - promtail_project=mlt_test
+      - promtail_env=development
 
   webapi:
     build: ./webapi
     command: python manage.py runserver 0.0.0.0:8001
     environment:
-      - TRACING_HOST=jaeger
+      - TRACING_HOST=jaeger-agent
       - TRACING_PORT=6831
     volumes:
       - ./webapi:/webapi
@@ -41,21 +45,10 @@ services:
       - prometheus_project=mlt_test
       - prometheus_env=development
       - prometheus___metrics_path__=/metrics
-
-  ### OBSERVABILITY APPS ###
-  promtail:
-    # Must be local to the apps
-    image: grafana/promtail:latest
-    volumes:
-      - ./promtail/promtail.yaml:/etc/promtail/promtail.yaml
-      - ./webapp/webapp.log:/var/log/webapp.log
-      - ./webapi/webapi.log:/var/log/webapi.log
-    command: --config.file=/etc/promtail/promtail.yaml
-    depends_on:
-      - webapp
-      - webapi
-    networks:
-      - observability
+      - promtail_enable=true
+      - promtail_job=apps_webapi
+      - promtail_project=mlt_test
+      - promtail_env=development
 
 networks:
   apps:

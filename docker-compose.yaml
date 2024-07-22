@@ -1,45 +1,152 @@
+# Grafana
+# - Prometheus
+# - Loki
+#   - Promtail
+# - Jaeger
+#   - OpenTelemetry
+#   - Elasticsearch
+
 name: observability
 services:
+  # DASHBOARD
   grafana:
     image: grafana/grafana:latest
-    ports:
-      - "3000:3000"
     volumes:
       - ./grafana/dashboard.yaml:/etc/grafana/provisioning/datasources/dashboard.yaml
-    depends_on:
+    networks:
+      - observability
+    ports:
+      - 3000:3000
+    # depends_on:
       # - tempo
-      - loki
-      - prometheus
-      - jaeger
-    networks:
-      - observability
+      # - loki
+      # - prometheus
+      # - jaeger-query
+    restart: unless-stopped
 
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    ports:
-      - 16686:16686
-      - 6831:6831
-    networks:
-      - observability
-
-  loki:
-    image: grafana/loki:latest
-    ports:
-      - "3100:3100"
-    networks:
-      - observability
-
+  # METRICS
   prometheus:
     image: prom/prometheus:latest
-    ports:
-      - 9090:9090
     volumes:
       - ./prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
       - /var/run/docker.sock:/var/run/docker.sock:0444
-    command: --config.file=/etc/prometheus/prometheus.yaml
-    user: root
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yaml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--log.level=warn'
     networks:
       - observability
+    ports:
+      - 9090:9090
+    user: root
+    restart: unless-stopped
+
+  # LOGS
+  loki:
+    image: grafana/loki:latest
+    volumes:
+      - ./loki/loki.yaml:/etc/loki/loki.yaml
+      - loki_data:/loki
+    command:
+      - "-config.file=/etc/loki/loki.yaml"
+    networks:
+      - observability
+    ports:
+      - 3100:3100
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:latest
+    volumes:
+      - ./promtail/promtail.yaml:/etc/promtail/promtail.yaml
+      - /var/log:/var/log
+      - /var/lib/docker/containers:/var/lib/docker/containers
+      - /var/run/docker.sock:/var/run/docker.sock:0444
+    command:
+      - '--config.file=/etc/promtail/promtail.yaml'
+    networks:
+      - observability
+    restart: unless-stopped
+
+  # TRACES
+  elasticsearch:
+    # https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html#docker-prod-prerequisites
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.22
+    environment:
+      - cluster.name=jaeger-cluster
+      - discovery.type=single-node
+      - http.host=0.0.0.0
+      - transport.host=127.0.0.1
+      - ES_JAVA_OPTS=-Xms256m -Xmx256m
+      - xpack.security.enabled=false
+    volumes:
+      - elastic_data:/usr/share/elasticsearch/data
+    networks:
+      - observability
+    ports:
+      - 127.0.0.1:9200:9200
+      - 127.0.0.1:9300:9300
+    restart: unless-stopped
+
+  jaeger-collector:
+    image: jaegertracing/jaeger-collector
+    environment:
+      - SPAN_STORAGE_TYPE=elasticsearch
+    networks:
+      - observability
+    # ports:
+      # - "14269:14269"
+      # - "14268:14268"
+      # - "14267:14267"
+      # - "14250:14250"
+      # - "9411:9411"
+    command: 
+      - "--es.server-urls=http://elasticsearch:9200"
+      - "--es.num-shards=1"
+      - "--es.num-replicas=0"
+      - "--log-level=warn"
+    restart: unless-stopped
+    depends_on:
+      - elasticsearch
+
+  jaeger-agent:
+    image: jaegertracing/jaeger-agent
+    hostname: jaeger-agent
+    environment:
+      - SPAN_STORAGE_TYPE=elasticsearch
+    command: 
+      - "--reporter.grpc.host-port=jaeger-collector:14250"
+      - "--log-level=warn"
+    networks:
+      - observability
+    ports:
+      # - 5775:5775/udp
+      # - 5778:5778
+      # - 6832:6832/udp
+      - 6831:6831/udp
+    restart: unless-stopped
+    depends_on:
+      - jaeger-collector
+
+  jaeger-query:
+    image: jaegertracing/jaeger-query
+    environment:
+      - SPAN_STORAGE_TYPE=elasticsearch
+      - no_proxy=localhost
+    networks:
+      - observability
+    ports:
+      - "16686:16686"
+      - "16687:16687"
+    command:
+      - "--es.server-urls=http://elasticsearch:9200"
+      - "--span-storage.type=elasticsearch"
+      - "--log-level=warn"
+    restart: unless-stopped
+    depends_on:
+      - jaeger-agent
 
   # tempo:
   #   image: grafana/tempo:latest
@@ -49,6 +156,20 @@ services:
   #     - -config.file=/etc/tempo/tempo.yaml
   #   volumes:
   #     - ./tempo/tempo.yaml:/etc/tempo/tempo.yaml
+
+  # cadvisor:
+  # -l prometheus-job=cadvisor
+  #     --mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock,ro
+  #     --mount type=bind,src=/,dst=/rootfs,ro
+  #     --mount type=bind,src=/var/run,dst=/var/run
+  #     --mount type=bind,src=/sys,dst=/sys,ro
+  #     --mount type=bind,src=/var/lib/docker,dst=/var/lib/docker,ro
+  #     google/cadvisor -docker_only
+
+volumes:
+  loki_data:
+  prometheus_data:
+  elastic_data:
 
 networks:
   observability:
