@@ -138,8 +138,8 @@ services:
     networks:
       - observability
     ports:
-      - "16686:16686"
-      - "16687:16687"
+      - 16686:16686
+      - 16687:16687
     command:
       - "--es.server-urls=http://elasticsearch:9200"
       - "--span-storage.type=elasticsearch"

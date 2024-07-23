@@ -10,7 +10,7 @@ services:
     volumes:
       - ./webapp:/webapp
     ports:
-      - "8000:8000"
+      - 8000:8000
       - 8080:8080
     depends_on:
       - webapi
@@ -36,7 +36,7 @@ services:
     volumes:
       - ./webapi:/webapi
     ports:
-      - "8001:8001"
+      - 8001:8001
     networks:
       - apps
       - observability

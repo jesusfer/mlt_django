@@ -11,10 +11,22 @@ Open source technologies listed below are used to collect MLT data:
 
 1. **Grafana** _[Dashboard]_: This is a dashboard where we will observe the MLT data collected by the rest of the services.
 2. **Prometheus** _[Monitoring]_: Collects and stores metrics from applications.
-3. **Promtail** _[Logging]_: Collects log data from applications and sends them to Loki.
+3. **Promtail** _[Logging]_: Collects log data from applications and sends them to Loki. 
 4. **Loki** _[Logging]_: Aggregates and stores all logs sent by Promtail.
 5. **Opentelemetry** _[Tracing]_: Instruments an app to collect traces and sends them to Jaeger.
 6. **Jaeger** _[Tracing]_: Collects and stores tracing information. Also helps in trace visualization.
+
+Additionally:
+
+1. **Elasticsearch**: As a storage backend for Jaeger tracing.
+
+Changes from upstream:
+
+1. Separate compose files for apps and observability containers. App containers must use the `observability` network to be able to reach the observability containers.
+2. Docker discovery. Prometheus and Promtail discover targets using the docker daemon and keep targets depending on container labels. Check [`apps-compose.yaml`](apps-compose.yaml) for an example.
+3. Separate containers for Jaeger.
+4. Data persistence. All data is persisted via volumes.
+5. Use the latest versions, except for Elasticsearch as Jaeger does not support version 8.x.
 
 The following figure summarizes the technology dependencies.
 
@@ -23,9 +35,9 @@ The following figure summarizes the technology dependencies.
 To run the project, follow the steps below.
 
 ```bash
-$ git clone https://github.com/rafed/opentelemetry-python-grafana-mlt
+$ git clone https://github.com/jesusfer/mlt_django
 
-$ cd opentelemetry-python-grafana-mlt
+$ cd mlt_django
 
 $ docker-compose up
 ```
