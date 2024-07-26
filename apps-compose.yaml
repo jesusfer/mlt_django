@@ -11,21 +11,17 @@ services:
       - ./webapp:/webapp
     ports:
       - 8000:8000
-      - 8080:8080
     depends_on:
       - webapi
     networks:
       - apps
       - observability
     labels:
-      - prometheus_job=apps_webapp
-      - prometheus_project=mlt_test
-      - prometheus_env=development
+      - monitor_enable=true
+      - monitor_project=mlt_django
+      - monitor_env=development
+      - monitor_app=webapp
       - prometheus___metrics_path__=/metrics
-      - promtail_enable=true
-      - promtail_job=apps_webapp
-      - promtail_project=mlt_test
-      - promtail_env=development
 
   webapi:
     build: ./webapi
@@ -41,14 +37,11 @@ services:
       - apps
       - observability
     labels:
-      - prometheus_job=apps_webapi
-      - prometheus_project=mlt_test
-      - prometheus_env=development
+      - monitor_enable=true
+      - monitor_project=mlt_django
+      - monitor_env=development
+      - monitor_app=webapi
       - prometheus___metrics_path__=/metrics
-      - promtail_enable=true
-      - promtail_job=apps_webapi
-      - promtail_project=mlt_test
-      - promtail_env=development
 
 networks:
   apps:

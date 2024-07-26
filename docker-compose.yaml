@@ -157,14 +157,27 @@ services:
   #   volumes:
   #     - ./tempo/tempo.yaml:/etc/tempo/tempo.yaml
 
-  # cadvisor:
-  # -l prometheus-job=cadvisor
-  #     --mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock,ro
-  #     --mount type=bind,src=/,dst=/rootfs,ro
-  #     --mount type=bind,src=/var/run,dst=/var/run
-  #     --mount type=bind,src=/sys,dst=/sys,ro
-  #     --mount type=bind,src=/var/lib/docker,dst=/var/lib/docker,ro
-  #     google/cadvisor -docker_only
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+      - /etc/machine-id:/etc/machine-id:ro
+    networks:
+      - observability
+    ports:
+      - 8080:8080
+    privileged: true
+    devices:
+      - /dev/kmsg
+    labels:
+      - monitor_enable=true
+      - monitor_job=cadvisor
+    command:
+      - -docker_only
 
 volumes:
   loki_data:

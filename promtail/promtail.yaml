@@ -17,7 +17,7 @@ scrape_configs:
     refresh_interval: 15s
     filters:
       - name: label
-        values: ["promtail_enable=true"]
+        values: ["monitor_enable=true"]
 
   pipeline_stages:
   - docker: {}
@@ -27,8 +27,11 @@ scrape_configs:
   - source_labels: ['__meta_docker_container_name']
     regex: '/(.*)'
     target_label: 'container'
-  - regex: __meta_docker_container_label_promtail_enable
+  - regex: __meta_docker_container_label_monitor_enable
     action: labeldrop
+  - regex: __meta_docker_container_label_monitor_(.+)
+    action: labelmap
+    replacement: $1
   - regex: __meta_docker_container_label_promtail_(.+)
     action: labelmap
     replacement: $1
