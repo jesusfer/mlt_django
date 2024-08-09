@@ -5,8 +5,8 @@ services:
     build: ./webapp
     command: python manage.py runserver 0.0.0.0:8000
     environment:
-      - TRACING_HOST=jaeger-agent
-      - TRACING_PORT=6831
+      - TRACING_HOST=jaeger
+      - TRACING_PORT=14268
     volumes:
       - ./webapp:/webapp
     ports:
@@ -27,8 +27,8 @@ services:
     build: ./webapi
     command: python manage.py runserver 0.0.0.0:8001
     environment:
-      - TRACING_HOST=jaeger-agent
-      - TRACING_PORT=6831
+      - TRACING_HOST=jaeger
+      - TRACING_PORT=14268
     volumes:
       - ./webapi:/webapi
     ports:

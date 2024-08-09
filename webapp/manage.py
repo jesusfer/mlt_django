@@ -20,9 +20,11 @@ def main():
     LoggingInstrumentor().instrument()
     RequestsInstrumentor().instrument()
 
+    host = os.getenv("TRACING_HOST")
+    port = int(os.getenv("TRACING_PORT"))
+
     jaeger_exporter = JaegerExporter(
-        agent_host_name=os.getenv("TRACING_HOST"),
-        agent_port= int(os.getenv("TRACING_PORT")),
+        collector_endpoint=f'http://{host}:{port}/api/traces?format=jaeger.thrift'
     )
     trace.set_tracer_provider(TracerProvider(
         resource=Resource.create({SERVICE_NAME: 'webapp'})
